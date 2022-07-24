@@ -1,0 +1,94 @@
+#!/bin/bash
+
+DOMAIN=
+KEY=
+SECRET=
+
+EXE=`basename $0`
+
+
+del(){
+    if [ $# -lt 2 ]; then
+            return 2
+    fi
+
+    curl -X 'DELETE' \
+  "https://api.godaddy.com/v1/domains/$DOMAIN/records/A/$2" \
+  -H 'accept: application/json' \
+  -H "Authorization: sso-key $KEY:$SECRET"
+}
+
+upd(){
+    if [ $# -lt 2 ]; then
+	    return 2
+    fi
+    # resolve from command line
+    # such key=value
+    # and then, has been load by shell
+    eval `echo $2 | awk -F= '{printf "key=%s;value=%s\n", $1, $2}'`
+    curl -X 'PUT' \
+  "https://api.godaddy.com/v1/domains/$DOMAIN/records/A/$key" \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: sso-key $KEY:$SECRET" \
+  -d "[
+  {
+    \"data\": \"$value\",
+    \"port\": 1,
+    \"priority\": 0,
+    \"protocol\": \"string\",
+    \"service\": \"string\",
+    \"ttl\": 600,
+    \"weight\": 0
+  }
+]"
+}
+
+add(){
+    upd $@
+}
+
+get(){
+    if [ $# -lt 2 ]; then
+            return 2
+    fi
+
+    curl -X 'GET' \
+  "https://api.godaddy.com/v1/domains/$DOMAIN/records/A/$2" \
+  -H 'accept: application/json' \
+  -H "Authorization: sso-key $KEY:$SECRET"
+}
+
+getall(){
+    curl -X 'GET' \
+  "https://api.godaddy.com/v1/domains/$DOMAIN" \
+  -H 'accept: application/json' \
+  -H "Authorization: sso-key $KEY:$SECRET"
+}
+
+help(){
+    echo "Usage: $EXE <{ add | del | upd | get | getall }>"
+    echo "       add <sub_domain>=<address>"
+    echo "       del <sub_domain>"
+    echo "       upd <sub_domain>=<address>"
+    echo "       get <sub_domain>"
+    echo "       getall"
+    exit 1
+}
+
+main(){
+    if [ $# -lt 1 ]; then
+	    help
+    fi 
+    case $1 in
+	    add|del|upd|get|getall)
+		    $1 $@
+		    ;;
+	    *)
+		    help
+		    ;;
+    esac
+}
+
+main $@
+
